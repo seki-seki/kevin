@@ -35,8 +35,6 @@ async function getGitHubToken() {
   }
 }
 
-let octokit;
-
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -105,6 +103,12 @@ app.post("/slack/command", async (req, res) => {
   );
 
   try {
+    const githubToken = await getGitHubToken();
+    if (!githubToken) {
+      throw new Error("GitHubトークンが取得できませんでした。");
+    }
+    const octokit = new Octokit({ auth: githubToken });
+
     const [owner, repoName] = repo.split("/");
     const contextDocId = `${owner}__${repoName}`;
     let fileList = "";
@@ -312,17 +316,6 @@ app.post("/slack/command", async (req, res) => {
   }
 });
 
-async function startServer() {
-  const githubToken = await getGitHubToken();
-  if (!githubToken) {
-    console.error("GitHubトークンが取得できなかったため、起動を中止します。");
-    return;
-  }
-  octokit = new Octokit({ auth: githubToken });
-
-  app.listen(process.env.PORT || 8080, () => {
-    console.log(` SlackBot起動中 on port ${process.env.PORT || 8080}...`);
-  });
-}
-
-startServer();
+app.listen(process.env.PORT || 8080, () => {
+  console.log(` SlackBot起動中 on port ${process.env.PORT || 8080}...`);
+});
