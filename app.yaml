@@ -1,0 +1,37 @@
+runtime: nodejs20 # package.json で Node.js 20 以上を指定したので、nodejs20 ランタイムを使用
+entrypoint: npm start # package.json の "start": "node index.js" を実行
+
+# 環境変数をここで定義します。
+# 機密性の高い情報 (GitHub Token など) は Secret Manager から取得するため、ここには含めません。
+env_variables:
+  GCP_PROJECT_ID: "cline-api-456312" # ここにご自身の GCP プロジェクト ID を入力してください
+
+# ヘルスチェック設定を追加
+health_check:
+  enable_health_check: True
+  check_interval_sec: 30 # チェック間隔 (秒)
+  timeout_sec: 4 # タイムアウト (秒)
+  unhealthy_threshold: 2 # 失敗とみなす連続失敗回数
+  healthy_threshold: 2 # 正常とみなす連続成功回数
+
+liveness_check:
+  path: "/liveness_check" # index.js で定義したパス
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+
+readiness_check:
+  path: "/readiness_check" # index.js で定義したパス
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+  app_start_timeout_sec: 300 # アプリ起動後の最初のチェックまでの猶予
+
+# 必要に応じて、インスタンスクラスやスケーリング設定を追加・変更してください
+# instance_class: F1
+# automatic_scaling:
+#   min_instances: 1
+#   max_instances: 5
+#   target_cpu_utilization: 0.65

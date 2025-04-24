@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Environment variables file
+# Contains sensitive data, DO NOT COMMIT!
+env.yaml
+
+# Optional: Other common Node.js ignores
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
