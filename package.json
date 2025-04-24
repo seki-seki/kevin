@@ -1,7 +1,7 @@
 {
-  "name": "slack-agent",
+  "name": "kevin",
   "version": "1.0.0",
-  "description": "Slack bot agent for coding",
+  "description": "Kevin: AI Coding Agent Bot for Slack",
   "main": "index.js",
   "type": "module",
   "scripts": {
