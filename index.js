@@ -11,14 +11,16 @@ import { VertexAI } from "@google-cloud/vertexai";
 const datastore = new Datastore();
 const secretManagerClient = new SecretManagerServiceClient();
 
-const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID;
-if (!GCP_PROJECT_ID) {
-  console.error("🚨 環境変数 GCP_PROJECT_ID が設定されていません。");
+const GOOGLE_CLOUD_PROJECT = process.env.GOOGLE_CLOUD_PROJECT;
+if (!GOOGLE_CLOUD_PROJECT) {
+  console.error(
+    "🚨 環境変数 GOOGLE_CLOUD_PROJECT が設定されていません。App Engine 環境で実行されているか確認してください。"
+  );
   process.exit(1);
 }
 
 async function getGitHubToken() {
-  const secretName = `projects/${GCP_PROJECT_ID}/secrets/GITHUB_TOKEN/versions/latest`;
+  const secretName = `projects/${GOOGLE_CLOUD_PROJECT}/secrets/GITHUB_TOKEN/versions/latest`;
   try {
     const [version] = await secretManagerClient.accessSecretVersion({
       name: secretName,
@@ -40,7 +42,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 const vertexAi = new VertexAI({
-  project: GCP_PROJECT_ID,
+  project: GOOGLE_CLOUD_PROJECT,
   location: "us-central1",
 });
 const model = "gemini-2.5-pro-exp-03-25";
