@@ -64,12 +64,11 @@ function parseAiResponse(responseText) {
   while ((match = regex.exec(responseText)) !== null) {
     const filePath = match[1].trim();
     let fileContent = match[2].trim();
-    // Markdownコードフェンスを除去
     fileContent = fileContent
       .replace(/^```(?:\w+)?\s*\n/, "")
       .replace(/\n```$/, "");
     if (filePath && fileContent) {
-      files.push({ path: filePath, content: fileContent.trim() }); // 再度trimして空行を除去
+      files.push({ path: filePath, content: fileContent.trim() });
     }
   }
   if (files.length === 0 && responseText.trim().length > 0) {
@@ -87,7 +86,6 @@ function parseAiResponse(responseText) {
       responseText.trim().startsWith("[")
     )
       defaultPath = "data.json";
-    // デフォルトパスの場合もコードフェンスを除去
     let defaultContent = responseText.trim();
     defaultContent = defaultContent
       .replace(/^```(?:\w+)?\s*\n/, "")
@@ -100,8 +98,13 @@ function parseAiResponse(responseText) {
 app.post("/slack/command", async (req, res) => {
   const { text, user_name, response_url } = req.body;
   const repoMatch = text.match(/--repo=(\S+)/);
+  const branchMatch = text.match(/--branch=(\S+)/);
   const repo = repoMatch ? repoMatch[1] : null;
-  const userPrompt = text.replace(/--repo=\S+/, "").trim();
+  const specifiedBranch = branchMatch ? branchMatch[1] : null;
+  const userPrompt = text
+    .replace(/--repo=\S+/, "")
+    .replace(/--branch=\S+/, "")
+    .trim();
 
   if (!repo) {
     return res.send(
@@ -109,9 +112,12 @@ app.post("/slack/command", async (req, res) => {
     );
   }
 
-  res.send(
-    `✅ 了解「${userPrompt}」（${repo} にPR出すね）...処理を開始します。`
-  );
+  let initialMessage = `✅ 了解「${userPrompt}」（${repo}`;
+  if (specifiedBranch) {
+    initialMessage += ` の ${specifiedBranch} ブランチ`;
+  }
+  initialMessage += " にPR出すね）...処理を開始します。";
+  res.send(initialMessage);
 
   try {
     const githubToken = await getGitHubToken();
@@ -130,6 +136,7 @@ app.post("/slack/command", async (req, res) => {
       repo: repoName,
     });
     const defaultBranch = repoData.default_branch;
+    const baseBranchName = specifiedBranch || defaultBranch;
 
     const contextKind = "RepoContext";
     const contextKey = datastore.key([contextKind, contextDocId]);
@@ -242,18 +249,18 @@ app.post("/slack/command", async (req, res) => {
     const uniqueId = `${timestamp}-${randomSuffix}`;
     const branchName = `ai-generated-${uniqueId}`;
 
-    const defaultBranchRef = await octokit.git.getRef({
+    const baseBranchRef = await octokit.git.getRef({
       owner,
       repo: repoName,
-      ref: `heads/${defaultBranch}`,
+      ref: `heads/${baseBranchName}`,
     });
-    const defaultBranchSha = defaultBranchRef.data.object.sha;
+    const baseBranchSha = baseBranchRef.data.object.sha;
 
     await octokit.git.createRef({
       owner,
       repo: repoName,
       ref: `refs/heads/${branchName}`,
-      sha: defaultBranchSha,
+      sha: baseBranchSha,
     });
     console.log(`✅ ブランチ '${branchName}' を作成しました。`);
 
@@ -305,7 +312,7 @@ app.post("/slack/command", async (req, res) => {
       repo: repoName,
       title: `AI: ${userPrompt}`,
       head: branchName,
-      base: defaultBranch,
+      base: baseBranchName,
       body: `このPRはSlackBot経由で生成されました。\n\n指示内容:\n${userPrompt}\n\n変更ファイル:\n${filesToWrite
         .map((f) => `- ${f.path}`)
         .join("\n")}`,
