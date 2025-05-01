@@ -63,9 +63,13 @@ function parseAiResponse(responseText) {
 
   while ((match = regex.exec(responseText)) !== null) {
     const filePath = match[1].trim();
-    const fileContent = match[2].trim();
+    let fileContent = match[2].trim();
+    // Markdownコードフェンスを除去
+    fileContent = fileContent
+      .replace(/^```(?:\w+)?\s*\n/, "")
+      .replace(/\n```$/, "");
     if (filePath && fileContent) {
-      files.push({ path: filePath, content: fileContent });
+      files.push({ path: filePath, content: fileContent.trim() }); // 再度trimして空行を除去
     }
   }
   if (files.length === 0 && responseText.trim().length > 0) {
@@ -83,7 +87,12 @@ function parseAiResponse(responseText) {
       responseText.trim().startsWith("[")
     )
       defaultPath = "data.json";
-    files.push({ path: defaultPath, content: responseText.trim() });
+    // デフォルトパスの場合もコードフェンスを除去
+    let defaultContent = responseText.trim();
+    defaultContent = defaultContent
+      .replace(/^```(?:\w+)?\s*\n/, "")
+      .replace(/\n```$/, "");
+    files.push({ path: defaultPath, content: defaultContent.trim() });
   }
   return files;
 }
@@ -296,7 +305,7 @@ app.post("/slack/command", async (req, res) => {
       repo: repoName,
       title: `AI: ${userPrompt}`,
       head: branchName,
-      base: "main",
+      base: defaultBranch,
       body: `このPRはSlackBot経由で生成されました。\n\n指示内容:\n${userPrompt}\n\n変更ファイル:\n${filesToWrite
         .map((f) => `- ${f.path}`)
         .join("\n")}`,
