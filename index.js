@@ -233,18 +233,18 @@ app.post("/slack/command", async (req, res) => {
     const uniqueId = `${timestamp}-${randomSuffix}`;
     const branchName = `ai-generated-${uniqueId}`;
 
-    const mainRef = await octokit.git.getRef({
+    const defaultBranchRef = await octokit.git.getRef({
       owner,
       repo: repoName,
-      ref: "heads/main",
+      ref: `heads/${defaultBranch}`,
     });
-    const mainSha = mainRef.data.object.sha;
+    const defaultBranchSha = defaultBranchRef.data.object.sha;
 
     await octokit.git.createRef({
       owner,
       repo: repoName,
       ref: `refs/heads/${branchName}`,
-      sha: mainSha,
+      sha: defaultBranchSha,
     });
     console.log(`✅ ブランチ '${branchName}' を作成しました。`);
 
