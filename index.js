@@ -116,6 +116,12 @@ app.post("/slack/command", async (req, res) => {
     let fileList = "";
     let codingRules = "";
 
+    const { data: repoData } = await octokit.repos.get({
+      owner,
+      repo: repoName,
+    });
+    const defaultBranch = repoData.default_branch;
+
     const contextKind = "RepoContext";
     const contextKey = datastore.key([contextKind, contextDocId]);
 
@@ -130,12 +136,6 @@ app.post("/slack/command", async (req, res) => {
       codingRules = contextEntity.codingRules || "";
       console.log("✅ Datastoreキャッシュ使用");
     } else {
-      const { data: repoData } = await octokit.repos.get({
-        owner,
-        repo: repoName,
-      });
-      const defaultBranch = repoData.default_branch;
-
       const treeResp = await octokit.git.getTree({
         owner,
         repo: repoName,
